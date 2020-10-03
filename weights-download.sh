@@ -1,4 +1,5 @@
-gURL=""
+gURL="https://drive.google.com/file/d/1Yz0KmzwIt_UnhIeoFHnd7qBQWhLQLlwo/view?usp=sharing"
+
 # match more than 26 word characters  
 ggID=$(echo "$gURL" | egrep -o '(\w|-){26,}')
 
@@ -9,5 +10,5 @@ getcode="$(awk '/_warning_/ {print $NF}' /tmp/gcokie)"
 
 
 cmd='cd darknet/ && curl --insecure -C - -LOJb /tmp/gcokie "${ggURL}&confirm=${getcode}&id=${ggID}"'
-echo -e "Downloading from "$gURL"...\n"
+echo -e "Downloading weights from GDrive...\n"
 eval $cmd
