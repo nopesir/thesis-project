@@ -1,1 +1,8 @@
 darknet/*.weights
+darknet/__pycache__
+*.jpg
+*.list
+*.json
+darknet/*.jpg
+darknet/*.list
+darknet/*.json
