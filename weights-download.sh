@@ -1,3 +1,9 @@
+#!/bin/bash
+
+# ---------------------------------------------------------------------- 
+# Get the YOLOv4 trained weights on the Car class from 254300's Google Drive |
+# ----------------------------------------------------------------------
+
 gURL="https://drive.google.com/file/d/1Yz0KmzwIt_UnhIeoFHnd7qBQWhLQLlwo/view?usp=sharing"
 
 # match more than 26 word characters  

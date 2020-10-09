@@ -1,6 +1,7 @@
 import wrapper
 import cv2 as cv
 
+
 def retrieve_best_coordinates(detections, image_yolo):
     """
     Get the coordinates of the best detection as (xmin, ymin, xmax, ymax, center)
@@ -45,7 +46,6 @@ def kp_filtersort_L2(kp, bbox, kp_center, n=20):
     return kp_yolo
 
 
-
 def apply_yolo_orb(img, bbox, kp_center):
     """
     Apply ORB on the bbox by filtering the keypoints and use L2 norm distance from the center
@@ -63,4 +63,21 @@ def apply_yolo_orb(img, bbox, kp_center):
     kp_yolo = kp_filtersort_L2(kp, bbox, kp_center)
 
     return kp_yolo
+
+
+def load_images():
+    """
+    Load all IMAGE YOLO class from the image.txt file into a list and return it
+    """
+
+    images = []
+    paths = []
+    with open("images.txt") as f_images:
+        temp = f_images.readlines()
+        for i, line in enumerate(temp):
+            paths.insert(i, line.replace('\n', ''))
+
+    for line in paths:
+        images.append(wrapper.load_image(bytes(line, encoding='utf-8'), 0, 0))
     
+    return images, paths
