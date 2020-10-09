@@ -1,6 +1,12 @@
+# Darknet weights
 darknet/*.weights
+
+# Python files
 __pycache__/*
 darknet/__pycache__
+__pycache__
+
+# Image files
 *.jpg
 *.png
 *.list
