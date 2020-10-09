@@ -1,4 +1,5 @@
 darknet/*.weights
+__pycache__/*
 darknet/__pycache__
 *.jpg
 *.png
