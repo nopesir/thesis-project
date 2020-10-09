@@ -67,7 +67,7 @@ def apply_yolo_orb(img, bbox, kp_center):
 
 def load_images():
     """
-    Load all IMAGE YOLO class from the image.txt file into a list and return it
+    Load all YOLO IMAGE class file from the image.txt file into a list and return it
     """
 
     images = []
