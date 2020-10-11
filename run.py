@@ -7,6 +7,7 @@ import os
 import sys
 import utils
 import wrapper
+import imghdr
 
 
 # Darknet configuration
@@ -18,13 +19,17 @@ weights_file = "./darknet/yolov4-thesis_last.weights"
 network, class_names, colors = wrapper.load_network(config_file, data_file, weights_file)
 
 # Load images and correstonding paths from image.txt file
-images, paths = utils.load_images()
+images, paths = utils.load_images_all()
 
 # For each images
 for i, image_yolo in enumerate(images):
 
     # Perform the detections
     detections = wrapper.detect_image(network, ['Car'], image_yolo, thresh=.25) 
+
+    if not detections:
+        print(paths[i] + " has no car, continuing...")
+        continue
 
     # Get bbox best coordinates of the detection
     xmin, ymin, xmax, ymax, center = utils.retrieve_best_coordinates(detections, image_yolo)

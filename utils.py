@@ -1,4 +1,5 @@
 import wrapper
+import os
 import cv2 as cv
 
 
@@ -66,6 +67,7 @@ def apply_yolo_orb(img, bbox, kp_center):
 
 
 def load_images():
+
     """
     Load all YOLO IMAGE class file from the image.txt file into a list and return it
     """
@@ -79,5 +81,21 @@ def load_images():
 
     for line in paths:
         images.append(wrapper.load_image(bytes(line, encoding='utf-8'), 0, 0))
+    
+    return images, paths
+
+
+def load_images_all():
+    """
+    Load all YOLO IMAGE class file in the folder into a list and return it
+    """
+
+    images = []
+    paths = []
+
+    for i, file in enumerate([f for f in os.listdir('./images/') if f.lower().endswith(('.png', '.jpg', '.jpeg'))]):
+        paths.insert(i, "images/" + file)
+        images.append(wrapper.load_image(bytes(paths[i], encoding='utf-8'), 0, 0))
+        
     
     return images, paths
