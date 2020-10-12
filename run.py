@@ -1,13 +1,10 @@
 import numpy as np
 import cv2 as cv
 from matplotlib import pyplot as plt
-import json
-import subprocess
 import os
 import sys
 import utils
 import wrapper
-import imghdr
 
 
 # Darknet configuration
