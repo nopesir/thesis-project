@@ -83,6 +83,7 @@ def ssc(keypoints, cols, rows, num_ret_points=20, tolerance=.4):
 
     return selected_keypoints
 
+
 def retrieve_best_coordinates(detections, image_yolo):
     """
     Get the coordinates of the best detection as (xmin, ymin, xmax, ymax, center)
