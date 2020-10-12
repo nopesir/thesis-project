@@ -1,3 +1,14 @@
+"""
+Python 3 utils functions for thesis-project
+Use it as Python module:
+
+import utils 
+
+utils.function()
+"""
+
+
+
 import wrapper
 import os
 import cv2 as cv
@@ -28,7 +39,7 @@ def retrieve_best_coordinates(detections, image_yolo):
 
 def kp_filtersort_L2(kp, bbox, kp_center, n=20):
     """
-    Filter out the keypoints not in the bbox and discards the ALL-n ones that are far from the bbox center
+    Filter out the keypoints not in the bbox and discards the ALL n-ones that are far from the bbox center
     """
 
     kp_yolo = []
@@ -47,23 +58,47 @@ def kp_filtersort_L2(kp, bbox, kp_center, n=20):
     return kp_yolo
 
 
-def apply_yolo_orb(img, bbox, kp_center):
+def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
-    Apply ORB on the bbox by filtering the keypoints and use L2 norm distance from the center
+    Apply MSER+SIFT on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    # Initiate ORB detector
-    orb = cv.ORB_create()
+    # Initiate MSER detector
+    mser = cv.MSER_create()
+    # Initiate SIFT descriptor
+    sift = cv.SIFT_create()
 
-    # find the keypoints with ORB
-    kp = orb.detect(img, None)
+    # Find the keypoints with MSER
+    kp = mser.detect(img1, None)
 
-    # compute the descriptors with ORB
-    kp, _ = orb.compute(img, kp)
+    # Filter only the first n points closest to the YOLO bbox center
+    kp = kp_filtersort_L2(kp, bbox1, kp_center1, n=50)
 
-    kp_yolo = kp_filtersort_L2(kp, bbox, kp_center)
+    # Compute the descriptors with SIFT
+    kp, des = sift.compute(img1, kp)
 
-    return kp_yolo
+    # Find the keypoints with MSER
+    kp2 = mser.detect(img2, None)
+
+    # Filter only the first n points closest to the YOLO bbox center
+    kp2 = kp_filtersort_L2(kp2, bbox2, kp_center2, n=50)
+
+    # Compute the descriptors with SIFT
+    kp2, des2 = sift.compute(img2, kp2)
+
+    # Brute Force matcher with default params (L2_NORM)
+    bf = cv.BFMatcher()
+
+    # Match using KNN with k=2
+    matches = bf.knnMatch(des, des2, k=2)
+
+    # Apply ratio test
+    good = []
+    for m,n in matches:
+        if m.distance < 0.75*n.distance:
+            good.append([m])
+
+    return (kp, des), (kp2, des2), good
 
 
 def load_images():

@@ -24,25 +24,36 @@ images, paths = utils.load_images_all()
 # For each images
 for i, image_yolo in enumerate(images):
 
-    # Perform the detections
-    detections = wrapper.detect_image(network, ['Car'], image_yolo, thresh=.25) 
+    if i == 1:
+        continue
+    elif i == (len(images)-1):
+        detections = wrapper.detect_image(network, ['Car'], images[i], thresh=.25)
+        detections2 = wrapper.detect_image(network, ['Car'], images[0], thresh=.25) 
+    else:
+        detections = wrapper.detect_image(network, ['Car'], images[i], thresh=.25)
+        detections2 = wrapper.detect_image(network, ['Car'], images[i+1], thresh=.25) 
 
-    if not detections:
-        print(paths[i] + " has no car, continuing...")
+    if (not detections) or (not detections2):
+        print("One photo has no car, continuing...")
         continue
 
-    # Get bbox best coordinates of the detection
-    xmin, ymin, xmax, ymax, center = utils.retrieve_best_coordinates(detections, image_yolo)
+    # Get bbox best coordinates of the detections
+    xmin, ymin, xmax, ymax, center = utils.retrieve_best_coordinates(detections, images[i])
+    xmin2, ymin2, xmax2, ymax2, center2 = utils.retrieve_best_coordinates(detections2, images[i+1])
 
-    img = cv.imread(paths[i], 0)
+    # Load the images as Numpy narrays
+    img = cv.imread(paths[i], cv.IMREAD_GRAYSCALE)
+    img2 = cv.imread(paths[i+1], cv.IMREAD_GRAYSCALE)
+
+    # Instantiate the KeyPoint class from the centers coordinates
     kp_center = cv.KeyPoint(center[0], center[1], 0)
+    kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
 
-    kp_yolo = utils.apply_yolo_orb(img, (xmin, ymin, xmax, ymax), kp_center)
+    # Apply MSER+SIFT with L2 filter from the YOLO bbox centers
+    first, second, good = utils.apply(img, img2, (xmin, ymin, xmax, ymax), (xmin2, ymin2, xmax2, ymax2), kp_center, kp_center2)
 
+    img3 = cv.drawMatchesKnn(img,first[0],img2,second[0],good,None,flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    plt.imshow(img3),plt.show()
 
-    img = cv.imread(paths[i], 0)
-    img2 = cv.drawKeypoints(img, kp_yolo, None, color=(255,0,0), flags=0)
-    img2 = cv.drawKeypoints(img2, [kp_center], None, color=(0,255,0), flags=0)
-    plt.imshow(img2), plt.show()
 
 

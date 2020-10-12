@@ -5,6 +5,8 @@ Use it as Python module:
 
 import wrapper 
 
+wrapper.function()
+
 """
 from ctypes import *
 import math
