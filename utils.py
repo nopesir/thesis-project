@@ -112,15 +112,6 @@ def kp_filtersort_L2(kp, img, bbox, kp_center, n=100):
     Filter out the keypoints not in the bbox and discards the ALL n-ones that are far from the bbox center
     """
 
-
-
-
-    kp = ssc(kp, img.shape[1], img.shape[0], num_ret_points=n)
-
-    kp.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
-
-    kp = kp[:5]
-
     kp_yolo = []
 
     for keypoint in kp:
@@ -128,8 +119,11 @@ def kp_filtersort_L2(kp, img, bbox, kp_center, n=100):
             kp_yolo.append(keypoint)
 
 
+    #kp_yolo = ssc(kp_yolo, img.shape[1], img.shape[0], num_ret_points=n)
 
-    return kp_yolo
+    kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
+
+    return kp_yolo[:20]
 
 
 def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
@@ -137,43 +131,60 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply MSER+SIFT on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
+
+    # upload into Cuda
+    cuMat1g = cv.cuda_GpuMat(img1)
+    cuMat2g = cv.cuda_GpuMat(img2)
+
     # Initiate MSER detector
-    mser = cv.MSER_create()
+    #mser = cv.MSER_create()
+    c_surf = cv.cuda.SURF_CUDA_create(250)
     # Initiate SIFT descriptor
-    sift = cv.SIFT_create()
+    #sift = cv.SIFT_create()
 
     # Find the keypoints with MSER
-    kp = mser.detect(img1, None)
+    #kp = mser.detect(img1, None)
 
-    # Filter only the first n points closest to the YOLO bbox center
-    kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1, n=int(len(kp)/10))
+    kp, des = c_surf.detectWithDescriptors(cuMat1g, None)
 
     # Compute the descriptors with SIFT
-    kp, des = sift.compute(img1, kp)
+    #kp, des = sift.compute(img1, kp)
 
     # Find the keypoints with MSER
-    kp2 = mser.detect(img2, None)
+    kp2, des2 = c_surf.detectWithDescriptors(cuMat2g, None)
+
+    kp = c_surf.downloadKeypoints(kp)
+    kp2 = c_surf.downloadKeypoints(kp2)
 
     # Filter only the first n points closest to the YOLO bbox center
-    kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2, n=int(len(kp2)/10))
+    kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1, n=200)
+    kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2, n=200)
 
     # Compute the descriptors with SIFT
-    kp2, des2 = sift.compute(img2, kp2)
+    #kp2, des2 = sift.compute(img2, kp2)
 
+    # Brute Force matcher with default params (L2_NORM)
+    #bf = cv.BFMatcher()
+
+    # Match using KNN with k=2
+    #matches = bf.knnMatch(des, des2, k=2)
+    
+    
     # Brute Force matcher with default params (L2_NORM)
     bf = cv.BFMatcher()
 
     # Match using KNN with k=2
-    matches = bf.knnMatch(des, des2, k=2)
+    matches = bf.knnMatch(des.download(), des2.download(), k=2)
 
-    # Apply ratio test
     good = []
-    for m,n in matches:
-        if m.distance < 0.75*n.distance:
+    for i, m_n in enumerate(matches):
+        if len(m_n) != 2:
+            continue
+        (m,n) = m_n
+        if m.distance < 0.7 * n.distance:
             good.append([m])
 
     return (kp, des), (kp2, des2), good
-
 
 def load_images():
 

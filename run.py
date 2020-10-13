@@ -47,15 +47,19 @@ for i, image_yolo in enumerate(images):
     kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
 
     # Apply MSER+SIFT with L2 filter from the YOLO bbox centers
-    first, second, good = utils.apply(img, img2, (xmin, ymin, xmax, ymax), (xmin2, ymin2, xmax2, ymax2), kp_center, kp_center2)
+    (kp, des), (kp2, des2), good = utils.apply(img, img2, (xmin, ymin, xmax, ymax), (xmin2, ymin2, xmax2, ymax2), kp_center, kp_center2)
 
-    matches_kp1 = [first[0][mat[0].queryIdx].pt for mat in good] 
-    matches_kp2 = [second[0][mat[0].trainIdx].pt for mat in good]
+    #matches_kp1 = [kp[mat[0].trainIdx].pt for mat in good] 
+    #matches_kp2 = [kp2[mat[0].queryIdx].pt for mat in good]
 
-    
+    print(len(kp))
+    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print(len(kp2))
+    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #print(good)
+    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
-
-    img3 = cv.drawMatchesKnn(img,first[0],img2,second[0],good,None,flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None)
     plt.imshow(img3),plt.show()
 
 
