@@ -105,7 +105,7 @@ def retrieve_best_coordinates(detections, image_yolo):
 
     center = (int((xmax+xmin)/2), int((ymax+ymin)/2))
 
-    return xmin, ymin, xmax, ymax, center
+    return (xmin, ymin, xmax, ymax), center
 
 
 def kp_filtersort_L2(kp, img, bbox, kp_center, n=3):
@@ -129,7 +129,7 @@ def kp_filtersort_L2(kp, img, bbox, kp_center, n=3):
 
 def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
-    Apply MSER+SIFT on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
+    Still in development
     """
 
     cuMat1 = cv.cuda_GpuMat(img1)

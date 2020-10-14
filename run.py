@@ -31,12 +31,11 @@ for i, image_yolo in enumerate(images):
         detections2 = wrapper.detect_image(network, ['Car'], images[i], thresh=.25) 
 
     if (not detections) or (not detections2):
-        print("One photo has no car, continuing...")
         continue
 
     # Get bbox best coordinates of the detections
-    xmin, ymin, xmax, ymax, center = utils.retrieve_best_coordinates(detections, images[i])
-    xmin2, ymin2, xmax2, ymax2, center2 = utils.retrieve_best_coordinates(detections2, images[i])
+    bbox, center = utils.retrieve_best_coordinates(detections, images[i])
+    bbox2, center2 = utils.retrieve_best_coordinates(detections2, images[i])
 
     # Load the images as Numpy narrays
     img = cv.imread(paths[i], cv.IMREAD_GRAYSCALE)
@@ -47,17 +46,15 @@ for i, image_yolo in enumerate(images):
     kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
 
     # Apply MSER+SIFT with L2 filter from the YOLO bbox centers
-    (kp, des), (kp2, des2), good = utils.apply(img, img2, (xmin, ymin, xmax, ymax), (xmin2, ymin2, xmax2, ymax2), kp_center, kp_center2)
+    (kp, des), (kp2, des2), good = utils.apply(img, img2, bbox, bbox2, kp_center, kp_center2)
 
-    #matches_kp1 = [kp[mat[0].trainIdx].pt for mat in good] 
-    #matches_kp2 = [kp2[mat[0].queryIdx].pt for mat in good]
+    matches_kp1 = [kp[mat[0].trainIdx].pt for mat in good] 
+    matches_kp2 = [kp2[mat[0].queryIdx].pt for mat in good]
 
-    print(len(kp))
-    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    print(len(kp2))
-    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    #print(good)
-    #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("\n++++ Matches for " + paths[i] + " and " + paths[i] + " ++++")
+    for i,kpp in enumerate(matches_kp1):
+        print("[" + str(kpp[0]) + " , " + str(kpp[1]) + "] --> [" + str(matches_kp2[i][0]) + " , " + str(matches_kp2[i][1]) +  "]") 
+
 
     img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None, flags=0)
     plt.imshow(img3),plt.show()
