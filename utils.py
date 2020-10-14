@@ -13,6 +13,7 @@ import wrapper
 import os
 import cv2 as cv
 import math
+import numpy as np
 
 
 def ssc(keypoints, cols, rows, num_ret_points=20, tolerance=.4):
@@ -107,84 +108,84 @@ def retrieve_best_coordinates(detections, image_yolo):
     return xmin, ymin, xmax, ymax, center
 
 
-def kp_filtersort_L2(kp, img, bbox, kp_center, n=100):
+def kp_filtersort_L2(kp, img, bbox, kp_center, n=3):
     """
     Filter out the keypoints not in the bbox and discards the ALL n-ones that are far from the bbox center
     """
 
     kp_yolo = []
+    kp_temp = ssc(kp, img.shape[1], img.shape[0], num_ret_points=200)
 
-    for keypoint in kp:
+    for keypoint in kp_temp:
         if (keypoint.pt[0] >= bbox[0]) and (keypoint.pt[0] <= bbox[2]) and (keypoint.pt[1] >= bbox[1])  and (keypoint.pt[1] <= bbox[3]):
             kp_yolo.append(keypoint)
 
 
-    #kp_yolo = ssc(kp_yolo, img.shape[1], img.shape[0], num_ret_points=n)
-
     kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
 
-    return kp_yolo[:20]
+
+    return kp_yolo[0:n]
 
 
-def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
+def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
     Apply MSER+SIFT on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
+    cuMat1 = cv.cuda_GpuMat(img1)
+    cuMat2 = cv.cuda_GpuMat(img2)
 
-    # upload into Cuda
-    cuMat1g = cv.cuda_GpuMat(img1)
-    cuMat2g = cv.cuda_GpuMat(img2)
 
-    # Initiate MSER detector
-    #mser = cv.MSER_create()
     c_surf = cv.cuda.SURF_CUDA_create(250)
-    # Initiate SIFT descriptor
-    #sift = cv.SIFT_create()
 
-    # Find the keypoints with MSER
-    #kp = mser.detect(img1, None)
-
-    kp, des = c_surf.detectWithDescriptors(cuMat1g, None)
-
-    # Compute the descriptors with SIFT
-    #kp, des = sift.compute(img1, kp)
-
-    # Find the keypoints with MSER
-    kp2, des2 = c_surf.detectWithDescriptors(cuMat2g, None)
-
+    kp = c_surf.detect(cuMat1, None)
     kp = c_surf.downloadKeypoints(kp)
+    kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
+    kp, des = c_surf.detectWithDescriptors(cuMat1, None,cv.cuda_GpuMat(kp))
+
+    kp2 = c_surf.detect(cuMat2, None)
     kp2 = c_surf.downloadKeypoints(kp2)
-
-    # Filter only the first n points closest to the YOLO bbox center
-    kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1, n=200)
-    kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2, n=200)
-
-    # Compute the descriptors with SIFT
-    #kp2, des2 = sift.compute(img2, kp2)
-
-    # Brute Force matcher with default params (L2_NORM)
-    #bf = cv.BFMatcher()
-
-    # Match using KNN with k=2
-    #matches = bf.knnMatch(des, des2, k=2)
+    kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2)
+    kp2, des2 = c_surf.compute(img2, kp2)
     
     
     # Brute Force matcher with default params (L2_NORM)
+    cbf = cv.cuda_DescriptorMatcher.createBFMatcher(cv.NORM_L1)
+    cmatches = cbf.match(des, des2) 
+
+    # Sort matches by score
+    cmatches.sort(key=lambda x: x.distance, reverse=False)
+    # Remove not so good matches
+    numGoodMatches = int(len(cmatches) * 0.15)
+    cmatches = cmatches[:numGoodMatches] 
+
+    return (kp, des), (kp2, des2), cmatches
+
+def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
+    """
+    Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
+    """
+
+    surf = cv.xfeatures2d.SURF_create(250)
+
+    kp = surf.detect(img1, None)
+    kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
+    kp, des = surf.compute(img1, kp)
+
+    kp2 = surf.detect(img2, None)
+    kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2)
+    kp2, des2 = surf.compute(img2, kp)
+
     bf = cv.BFMatcher()
-
-    # Match using KNN with k=2
-    matches = bf.knnMatch(des.download(), des2.download(), k=2)
+    matches = bf.knnMatch(des, des2, k=2)
 
     good = []
-    for i, m_n in enumerate(matches):
-        if len(m_n) != 2:
-            continue
-        (m,n) = m_n
-        if m.distance < 0.7 * n.distance:
+    for m, n in matches:
+        if m.distance < 0.6 * n.distance:
             good.append([m])
 
     return (kp, des), (kp2, des2), good
+
 
 def load_images():
 

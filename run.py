@@ -57,9 +57,9 @@ for i, image_yolo in enumerate(images):
     print(len(kp2))
     print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     #print(good)
-    print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    #print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
-    img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None)
+    img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None, flags=0)
     plt.imshow(img3),plt.show()
 
 
