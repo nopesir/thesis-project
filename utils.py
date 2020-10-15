@@ -16,7 +16,7 @@ import math
 import numpy as np
 
 
-def ssc(keypoints, cols, rows, num_ret_points=20, tolerance=.4):
+def ssc(keypoints, cols, rows, num_ret_points=20, tolerance=.1):
     exp1 = rows + cols + 2 * num_ret_points
     exp2 = (4 * cols + 4 * num_ret_points + 4 * rows * num_ret_points + rows * rows + cols * cols -
             2 * rows * cols + 4 * rows * cols * num_ret_points)
@@ -108,13 +108,13 @@ def retrieve_best_coordinates(detections, image_yolo):
     return (xmin, ymin, xmax, ymax), center
 
 
-def kp_filtersort_L2(kp, img, bbox, kp_center, n=3):
+def kp_filtersort_L2(kp, img, bbox, kp_center, n=200):
     """
     Filter out the keypoints not in the bbox and discards the ALL n-ones that are far from the bbox center
     """
 
     kp_yolo = []
-    kp_temp = ssc(kp, img.shape[1], img.shape[0], num_ret_points=200)
+    kp_temp = ssc(kp, img.shape[1], img.shape[0], num_ret_points=2500)
 
     for keypoint in kp_temp:
         if (keypoint.pt[0] >= bbox[0]) and (keypoint.pt[0] <= bbox[2]) and (keypoint.pt[1] >= bbox[1])  and (keypoint.pt[1] <= bbox[3]):
@@ -136,7 +136,7 @@ def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     cuMat2 = cv.cuda_GpuMat(img2)
 
 
-    c_surf = cv.cuda.SURF_CUDA_create(250)
+    c_surf = cv.cuda.SURF_CUDA_create(500)
 
     kp = c_surf.detect(cuMat1, None)
     kp = c_surf.downloadKeypoints(kp)
@@ -165,8 +165,9 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
-
-    surf = cv.xfeatures2d.SURF_create(250)
+    #img1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
+    #img2 = cv.cvtColor(img2, cv.COLOR_BGR2GRAY)
+    surf = cv.xfeatures2d.SURF_create(300)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -174,16 +175,25 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
 
     kp2 = surf.detect(img2, None)
     kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2)
-    kp2, des2 = surf.compute(img2, kp)
+    kp2, des2 = surf.compute(img2, kp2)
 
     bf = cv.BFMatcher()
     matches = bf.knnMatch(des, des2, k=2)
 
     good = []
     for m, n in matches:
-        if m.distance < 0.6 * n.distance:
+        if m.distance < 0.8 * n.distance:
             good.append([m])
-
+    '''
+    # generate lists of point correspondences
+    first_match_points = np.zeros((len(good), 2), dtype=np.float32)
+    second_match_points = np.zeros_like(first_match_points)
+    for i in range(len(good)):
+        first_match_points[i] = kp[good[i].queryIdx].pt
+        second_match_points[i] = kp2[good[i].trainIdx].pt
+    
+    return (kp, des), (kp2, des2), first_match_points, second_match_points, good
+    '''
     return (kp, des), (kp2, des2), good
 
 
@@ -201,9 +211,9 @@ def load_images():
             paths.insert(i, line.replace('\n', ''))
 
     for line in paths:
-        images.append(wrapper.load_image(bytes(line, encoding='utf-8'), 0, 0))
+        images.append((wrapper.load_image(bytes(line, encoding='utf-8'), 0, 0),line))
     
-    return images, paths
+    return images
 
 
 def load_images_all():
@@ -220,3 +230,29 @@ def load_images_all():
         
     
     return images, paths
+
+def in_front_of_both_cameras(first_points, second_points, rot, trans):
+    # check if the point correspondences are in front of both images
+    rot_inv = rot
+    for first, second in zip(first_points, second_points):
+        first_z = np.dot(rot[0, :] - second[0]*rot[2, :], trans) / np.dot(rot[0, :] - second[0]*rot[2, :], second)
+        first_3d_point = np.array([first[0] * first_z, second[0] * first_z, first_z])
+        second_3d_point = np.dot(rot.T, first_3d_point) - np.dot(rot.T, trans)
+
+        if first_3d_point[2] < 0 or second_3d_point[2] < 0:
+            return False
+
+    return True
+
+def retrieve_common_kps(matches):
+    """
+    Takes the DMatch-es of the fisrt photo with each one of the other and returns the coordinates of the first photo that are matched in each one of the other photos
+    """
+    for i, _ in enumerate(matches):
+        if i==0:
+            temp = list(set(matches[i][0]).intersection(matches[i+1][0]))
+        elif i < (len(matches)-1):
+            temp = list(set(temp).intersection(matches[i+1][0]))
+    
+    return temp
+        

@@ -16,8 +16,8 @@ def in_front_of_both_cameras(first_points, second_points, rot, trans):
     return True
 
 # load the corresponding images
-first_img = cv2.imread("first.jpg")
-second_img = cv2.imread("second.jpg")
+first_img = cv2.imread("images/tripod_seq_01_003.jpg")
+second_img = cv2.imread("images/tripod_seq_01_015.jpg")
 
 # camera parameters
 d = np.array([-0.03432, 0.05332, -0.00347, 0.00106, 0.00000, 0.0, 0.0, 0.0]).reshape(1, 8) # distortion coefficients
@@ -29,7 +29,7 @@ first_rect = cv2.undistort(first_img, K, d)
 second_rect = cv2.undistort(second_img, K, d)
 
 # extract key points and descriptors from both images
-detector = cv2.SURF(250)
+detector = cv2.xfeatures2d.SURF_create(250)
 first_key_points, first_descriptors = detector.detectAndCompute(first_rect, None)
 second_key_points, second_descriptos = detector.detectAndCompute(second_rect, None)
 
