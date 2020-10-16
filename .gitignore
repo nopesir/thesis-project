@@ -18,4 +18,5 @@ darknet/*.jpg
 darknet/*.list
 darknet/*.json
 
+# Numpy file arrays
 *.npz
