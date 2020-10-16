@@ -161,13 +161,14 @@ def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
 
     return (kp, des), (kp2, des2), cmatches
 
+
 def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
     #img1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
     #img2 = cv.cvtColor(img2, cv.COLOR_BGR2GRAY)
-    surf = cv.xfeatures2d.SURF_create(300)
+    surf = cv.xfeatures2d.SURF_create(260)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -231,6 +232,7 @@ def load_images_all():
     
     return images, paths
 
+
 def in_front_of_both_cameras(first_points, second_points, rot, trans):
     # check if the point correspondences are in front of both images
     rot_inv = rot
@@ -243,6 +245,7 @@ def in_front_of_both_cameras(first_points, second_points, rot, trans):
             return False
 
     return True
+
 
 def retrieve_common_kps(matches):
     """

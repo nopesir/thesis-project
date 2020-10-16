@@ -87,4 +87,11 @@ common_kps = utils.retrieve_common_kps(matches)
 
 print(common_kps)
 
+kps = []
+for kp in common_kps:
+    kps.append(cv.KeyPoint(kp[0], kp[1], 0))
 
+last = cv.drawKeypoints(img, kps,None)
+plt.imshow(last),plt.show()
+
+sys.exit(0)

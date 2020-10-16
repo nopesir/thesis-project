@@ -17,3 +17,5 @@ darknet/*.png
 darknet/*.jpg
 darknet/*.list
 darknet/*.json
+
+*.npz
