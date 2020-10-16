@@ -29,6 +29,12 @@ matches = []
 k = 0
 #for images in itertools.combinations(images_to_it, len(images_to_it)-1):
 
+'''
+SUPERGLUE:
+
+./match_pairs.py --input_pairs ../images.txt --input_dir ../images/ --output_dir ../ --viz --fast_viz --opencv_display --match_threshold .7 --resize -1
+'''
+
 # For each images
 
 for i, image_yolo in enumerate(images):
