@@ -15,6 +15,6 @@ curl -sc /tmp/gcokie "${ggURL}&id=${ggID}" >/dev/null
 getcode="$(awk '/_warning_/ {print $NF}' /tmp/gcokie)"
 
 
-cmd='cd darknet/ && curl --insecure -C - -LOJb /tmp/gcokie "${ggURL}&confirm=${getcode}&id=${ggID}"'
+cmd='cd ../darknet/ && curl --insecure -C - -LOJb /tmp/gcokie "${ggURL}&confirm=${getcode}&id=${ggID}"'
 echo -e "Downloading weights from GDrive...\n"
 eval $cmd
