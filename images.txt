@@ -1,3 +1,1 @@
-images/tripod_seq_01_022.jpg
-images/tripod_seq_01_024.jpg
-images/tripod_seq_01_025.jpg
+monodepth2/1.jpeg_disp.jpeg

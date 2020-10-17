@@ -17,6 +17,7 @@ darknet/*.png
 darknet/*.jpg
 darknet/*.list
 darknet/*.json
+monodepth2/models/*
 
 # Numpy file arrays
 *.npz
