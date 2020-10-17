@@ -167,7 +167,12 @@ def detect_image(network, class_names, image, thresh=.5, hier_thresh=.5, nms=.45
 
 hasGPU = True
 
-lib = CDLL("darknet/libdarknet.so")
+
+if hasGPU:
+    lib = CDLL("darknet/libdarknet.so")
+else:
+    lib = CDLL("darknet/libdarknet-cpu.so")
+
 lib.network_width.argtypes = [c_void_p]
 lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]

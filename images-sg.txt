@@ -1,0 +1,13 @@
+tripod_seq_01_015.jpg tripod_seq_01_016.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_017.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_018.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_019.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_020.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_021.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_022.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_023.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_024.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_025.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_026.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_027.jpg 0
+tripod_seq_01_015.jpg tripod_seq_01_028.jpg 0

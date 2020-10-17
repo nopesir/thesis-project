@@ -16,7 +16,7 @@ import math
 import numpy as np
 
 
-def ssc(keypoints, cols, rows, num_ret_points=20, tolerance=.1):
+def ssc(keypoints, cols, rows, num_ret_points=100, tolerance=.3):
     exp1 = rows + cols + 2 * num_ret_points
     exp2 = (4 * cols + 4 * num_ret_points + 4 * rows * num_ret_points + rows * rows + cols * cols -
             2 * rows * cols + 4 * rows * cols * num_ret_points)
@@ -114,17 +114,20 @@ def kp_filtersort_L2(kp, img, bbox, kp_center, n=200):
     """
 
     kp_yolo = []
-    kp_temp = ssc(kp, img.shape[1], img.shape[0], num_ret_points=2500)
 
-    for keypoint in kp_temp:
+    for keypoint in kp:
         if (keypoint.pt[0] >= bbox[0]) and (keypoint.pt[0] <= bbox[2]) and (keypoint.pt[1] >= bbox[1])  and (keypoint.pt[1] <= bbox[3]):
             kp_yolo.append(keypoint)
+    
+    #kp_temp = ssc(kp_yolo, img.shape[1], img.shape[0], num_ret_points=20)
+
+    
 
 
-    kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
+    #kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
 
 
-    return kp_yolo[0:n]
+    return kp_yolo
 
 
 def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
@@ -161,6 +164,13 @@ def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
 
     return (kp, des), (kp2, des2), cmatches
 
+def draw(img, corners, imgpts):
+    corner = tuple(corners[0].ravel())
+    corner = tuple([int(x) for x in corner])
+    img = cv.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
+    img = cv.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
+    img = cv.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
+    return img
 
 def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
@@ -168,7 +178,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
     #img1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
     #img2 = cv.cvtColor(img2, cv.COLOR_BGR2GRAY)
-    surf = cv.xfeatures2d.SURF_create(260)
+    surf = cv.xfeatures2d.SURF_create(230)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -183,7 +193,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
 
     good = []
     for m, n in matches:
-        if m.distance < 0.8 * n.distance:
+        if m.distance < 0.85 * n.distance:
             good.append([m])
     '''
     # generate lists of point correspondences
