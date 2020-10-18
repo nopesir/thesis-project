@@ -10,11 +10,16 @@ from __future__ import absolute_import, division, print_function
 import hashlib
 import zipfile
 from six.moves import urllib
+import cv2 as cv
+from matplotlib import pyplot as plt
 import wrapper
 import os
 import cv2 as cv
 import math
 import numpy as np
+import glob
+
+from config import *
 
 
 def ssc(keypoints, cols, rows, num_ret_points=100, tolerance=.3):
@@ -85,7 +90,6 @@ def ssc(keypoints, cols, rows, num_ret_points=100, tolerance=.3):
 
     return selected_keypoints
 
-
 def retrieve_best_coordinates(detections, image_yolo):
     """
     Get the coordinates of the best detection as (xmin, ymin, xmax, ymax, center)
@@ -108,28 +112,22 @@ def retrieve_best_coordinates(detections, image_yolo):
 
     return (xmin, ymin, xmax, ymax), center
 
-
-def kp_filtersort_L2(kp, img, bbox, kp_center, n=200):
+def kp_filtersort_L2(kp, img, bbox, kp_center, n=40):
     """
     Filter out the keypoints not in the bbox and discards the ALL n-ones that are far from the bbox center
     """
 
+    #kp_test = ssc(kp, img.shape[1], img.shape[0], num_ret_points=500)
     kp_yolo = []
-
     for keypoint in kp:
         if (keypoint.pt[0] >= bbox[0]) and (keypoint.pt[0] <= bbox[2]) and (keypoint.pt[1] >= bbox[1])  and (keypoint.pt[1] <= bbox[3]):
             kp_yolo.append(keypoint)
     
-    #kp_temp = ssc(kp_yolo, img.shape[1], img.shape[0], num_ret_points=20)
-
     
+    kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
 
 
-    #kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
-
-
-    return kp_yolo
-
+    return kp_yolo[0:n]
 
 def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
@@ -177,9 +175,8 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
-    #img1 = cv.cvtColor(img1, cv.COLOR_BGR2GRAY)
-    #img2 = cv.cvtColor(img2, cv.COLOR_BGR2GRAY)
-    surf = cv.xfeatures2d.SURF_create(230)
+
+    surf = cv.xfeatures2d.SURF_create(350)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -189,46 +186,31 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2)
     kp2, des2 = surf.compute(img2, kp2)
 
-    bf = cv.BFMatcher()
+    bf = cv.BFMatcher(normType=cv.NORM_L1)
     matches = bf.knnMatch(des, des2, k=2)
 
     good = []
     for m, n in matches:
         if m.distance < 0.85 * n.distance:
             good.append([m])
-    '''
-    # generate lists of point correspondences
-    first_match_points = np.zeros((len(good), 2), dtype=np.float32)
-    second_match_points = np.zeros_like(first_match_points)
-    for i in range(len(good)):
-        first_match_points[i] = kp[good[i].queryIdx].pt
-        second_match_points[i] = kp2[good[i].trainIdx].pt
     
-    return (kp, des), (kp2, des2), first_match_points, second_match_points, good
-    '''
     return (kp, des), (kp2, des2), good
 
-
-def load_images():
+def load_images(file):
 
     """
     Load all YOLO IMAGE class file from the image.txt file into a list and return it
     """
 
     images = []
-    paths = []
-    with open("images.txt") as f_images:
-        temp = f_images.readlines()
-        for i, line in enumerate(temp):
-            paths.insert(i, line.replace('\n', ''))
+    paths = readlines(file)
 
     for line in paths:
         images.append((wrapper.load_image(bytes(line, encoding='utf-8'), 0, 0),line))
     
     return images
 
-
-def load_images_all():
+def load_images_all(images_folder):
     """
     Load all YOLO IMAGE class file in the folder into a list and return it
     """
@@ -236,13 +218,12 @@ def load_images_all():
     images = []
     paths = []
 
-    for i, file in enumerate([f for f in os.listdir('./images/') if f.lower().endswith(('.png', '.jpg', '.jpeg'))]):
-        paths.insert(i, "images/" + file)
+    for i, file in enumerate([f for f in os.listdir(images_folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]):
+        paths.insert(i, images_folder + file)
         images.append(wrapper.load_image(bytes(paths[i], encoding='utf-8'), 0, 0))
         
     
     return images, paths
-
 
 def in_front_of_both_cameras(first_points, second_points, rot, trans):
     # check if the point correspondences are in front of both images
@@ -257,11 +238,12 @@ def in_front_of_both_cameras(first_points, second_points, rot, trans):
 
     return True
 
-
 def retrieve_common_kps(matches):
     """
     Takes the DMatch-es of the fisrt photo with each one of the other and returns the coordinates of the first photo that are matched in each one of the other photos
     """
+    if len(matches) == 1:
+        return matches
     for i, _ in enumerate(matches):
         if i==0:
             temp = list(set(matches[i][0]).intersection(matches[i+1][0]))
@@ -270,8 +252,8 @@ def retrieve_common_kps(matches):
     
     return temp
         
-        
 
+# Monodepth2
 
 def readlines(filename):
     """Read all the lines in a text file and return as a list
@@ -280,7 +262,6 @@ def readlines(filename):
         lines = f.read().splitlines()
     return lines
 
-
 def normalize_image(x):
     """Rescale image pixels to span range [0, 1]
     """
@@ -288,7 +269,6 @@ def normalize_image(x):
     mi = float(x.min().cpu().data)
     d = ma - mi if ma != mi else 1e5
     return (x - mi) / d
-
 
 def sec_to_hm(t):
     """Convert time in seconds to time in hours, minutes and seconds
@@ -301,14 +281,12 @@ def sec_to_hm(t):
     t //= 60
     return t, m, s
 
-
 def sec_to_hm_str(t):
     """Convert time in seconds to a nice string
     e.g. 10239 -> '02h50m39s'
     """
     h, m, s = sec_to_hm(t)
     return "{:02d}h{:02d}m{:02d}s".format(h, m, s)
-
 
 def download_model_if_doesnt_exist(model_name):
     """If pretrained kitti model doesn't exist, download and unzip it
@@ -374,3 +352,32 @@ def download_model_if_doesnt_exist(model_name):
             f.extractall(model_path)
 
         print("   Model unzipped to {}".format(model_path))
+
+# SuperGlue
+
+def retrieve_kps_superglue(pairs_folder):
+    """
+    Retrieve the keypoints from the output files of the SuperGlue network stored in @pairs_folder
+    """
+    alls = []
+    for k,file in enumerate(sorted(glob.glob(pairs_folder + "*.npz"))):
+        dict_matches = np.load(file)
+        kps = []
+        for i, kp in enumerate(list(dict_matches['keypoints0'])):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .8):
+                temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
+                #if temp[0] != temp[1]:
+                kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
+        alls.append(kps)
+    h = []
+    for i in alls[0]:
+        h.append(i[0])
+
+    l = []
+    for i in alls[2]:
+        l.append(i[1])
+
+    return h
+    #img = cv.imread("images/1.jpg", cv.IMREAD_GRAYSCALE)
+    #last = cv.drawKeypoints(img, h,None)
+    #plt.imshow(last),plt.show()

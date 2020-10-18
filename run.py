@@ -6,37 +6,20 @@ import sys
 import utils
 import wrapper
 import itertools
+from config import *
 
-
-# Darknet configuration
-config_file = "./darknet/cfg/yolov4-thesis.cfg"
-data_file = "./darknet/thesis.so.data"
-weights_file = "./darknet/yolov4-thesis_last.weights"
-
-# camera parameters
-d = np.array([-0.03432, 0.05332, -0.00347, 0.00106, 0.00000, 0.0, 0.0, 0.0]).reshape(1, 8) # distortion coefficients
-K = np.array([1189.46, 0.0, 805.49, 0.0, 1191.78, 597.44, 0.0, 0.0, 1.0]).reshape(3, 3) # Camera matrix
-K_inv = np.linalg.inv(K)
 
 # Load network and weights
 network, class_names, colors = wrapper.load_network(config_file, data_file, weights_file)
 
 # Load images and correstonding paths from image.txt file
-#images, paths = utils.load_images()
-images = utils.load_images()
+images = utils.load_images(images_file)
 
+# Initialization
 matches = []
 k = 0
-#for images in itertools.combinations(images_to_it, len(images_to_it)-1):
-
-'''
-SUPERGLUE:
-
-./match_pairs.py --input_pairs ../images.txt --input_dir ../images/ --output_dir ../ --viz --fast_viz --opencv_display --match_threshold .7 --resize -1
-'''
 
 # For each images
-
 for i, image_yolo in enumerate(images):
     first = 0
     second = 0
@@ -49,7 +32,7 @@ for i, image_yolo in enumerate(images):
     detections2 = wrapper.detect_image(network, ['Car'], images[second][0], thresh=.15)   
 
     if (not detections) or (not detections2):
-        #print("nope: " + images[first][1] + " " + images[second][1])
+        print("nope: " + images[first][1] + " " + images[second][1])
         continue
     
 
@@ -57,15 +40,16 @@ for i, image_yolo in enumerate(images):
     bbox, center = utils.retrieve_best_coordinates(detections, images[first][0])
     bbox2, center2 = utils.retrieve_best_coordinates(detections2, images[second][0])
 
+
     # Load the images as Numpy narrays
     img = cv.imread(images[first][1], cv.IMREAD_GRAYSCALE)
     img2 = cv.imread(images[second][1], cv.IMREAD_GRAYSCALE)
 
-    # Instantiate the KeyPoint class from the centers coordinates
+    # Instantiate the KeyPoint class from the centers bboxes coordinates
     kp_center = cv.KeyPoint(center[0], center[1], 0)
     kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
     
-    # Apply MSER+SIFT with L2 filter from the YOLO bbox centers
+    # Apply SURF with L2 filter from the YOLO bbox centers
     (kp, des), (kp2, des2), good = utils.apply(img, img2, bbox, bbox2, kp_center, kp_center2)
 
     matches_kp1 = []
@@ -84,10 +68,10 @@ for i, image_yolo in enumerate(images):
 
 
 
-    #img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None, flags=2)
-    #plt.imshow(img3),plt.show()
+    img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None, flags=2)
+    plt.imshow(img3),plt.show()
 
-
+print(matches)
 common_kps = utils.retrieve_common_kps(matches)
 common_kps.pop()
 axis = np.float32([[150,0,0], [0,150,0], [0,0,-150]]).reshape(-1,3)
@@ -115,7 +99,6 @@ gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
-
 imgp = np.reshape(imgp, (len(imgp), 1, 2))
 print(imgp.shape)
 
@@ -124,7 +107,6 @@ ret, rvecs, tvecs, inliers = cv.solvePnPRansac(objp, imgp, K, None)
 
 # project 3D points to image plane
 imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, K, None)
-print(imgpts)
 
 ttt = cv.drawChessboardCorners(img, (3,6), imgp, ret)
 
