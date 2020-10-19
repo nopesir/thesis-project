@@ -18,6 +18,7 @@ import cv2 as cv
 import math
 import numpy as np
 import glob
+import subprocess
 
 from config import *
 
@@ -176,7 +177,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    surf = cv.xfeatures2d.SURF_create(350)
+    surf = cv.xfeatures2d.SURF_create(300)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -195,6 +196,143 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
             good.append([m])
     
     return (kp, des), (kp2, des2), good
+
+def run_surf(images, network):
+    """
+    docstring
+    """
+    # Initialization
+    matches = []
+    k = 0
+
+    # For each images
+    for i, _ in enumerate(images):
+        first = 0
+        second = 0
+        if i>=(len(images)-1):
+            continue
+        else:
+            second = i+1
+
+        detections = wrapper.detect_image(network, ['Car'], images[first][0], thresh=.15)
+        detections2 = wrapper.detect_image(network, ['Car'], images[second][0], thresh=.15)   
+
+        if (not detections) or (not detections2):
+            print("nope: " + images[first][1] + " " + images[second][1])
+            continue
+        
+
+        # Get bbox best coordinates of the detections
+        bbox, center = retrieve_best_coordinates(detections, images[first][0])
+        bbox2, center2 = retrieve_best_coordinates(detections2, images[second][0])
+
+
+        # Load the images as Numpy narrays
+        img = cv.imread(images[first][1], cv.IMREAD_GRAYSCALE)
+        img2 = cv.imread(images[second][1], cv.IMREAD_GRAYSCALE)
+
+        # Instantiate the KeyPoint class from the centers bboxes coordinates
+        kp_center = cv.KeyPoint(center[0], center[1], 0)
+        kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
+        
+        # Apply SURF with L2 filter from the YOLO bbox centers
+        (kp, des), (kp2, des2), good = apply(img, img2, bbox, bbox2, kp_center, kp_center2)
+
+        matches_kp1 = []
+        matches_kp2 = []
+
+        if i==0:
+            img = cv.imread(images[0][1], cv.IMREAD_GRAYSCALE)
+            last = cv.drawKeypoints(img, kp,None)
+            plt.imshow(last),plt.show()
+
+        for match in good:
+            matches_kp1.append(kp[match[0].trainIdx].pt) 
+            matches_kp2.append(kp[match[0].queryIdx].pt) 
+
+        if k==0:
+            matches.append((matches_kp1, matches_kp2))
+
+        print("\n++++ Matches for " + images[first][1] + " --> " + images[second][1] + " ++++")
+        for i,kpp in enumerate(matches_kp1):
+            print("[" + str(kpp[0]) + " , " + str(kpp[1]) + "] --> [" + str(matches_kp2[i][0]) + " , " + str(matches_kp2[i][1]) +  "]") 
+
+
+
+        #img3 = cv.drawMatchesKnn(img,kp,img2,kp2,good,None, flags=2)
+        #plt.imshow(img3),plt.show()
+    
+    return matches
+
+def run_superglue(pairs_folder, network, images):
+    """
+    Retrieve the keypoints from the output files of the SuperGlue network stored in @pairs_folder and run on the common matches
+    """
+
+    if os.listdir(pairs_folder):
+        ret = subprocess.call(cmd_remove, shell=True)
+
+    # Run SuperGlue
+    ret = subprocess.call(cmd_superglue, shell=True)
+
+    alls = []
+    for k,file in enumerate(sorted(glob.glob(pairs_folder + "*.npz"))):
+        dict_matches = np.load(file)
+        kps = []
+        coords = []
+        for i, kp in enumerate(list(dict_matches['keypoints0'])):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .8):
+                temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
+                if temp[0] != temp[1]:
+                    kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
+        alls.append(kps)
+    
+    matches = []
+
+    for j, _ in enumerate(images):
+        first = 0
+        second = 0
+        if j>=(len(images)-1):
+            continue
+        else:
+            second = j+1
+
+        detections = wrapper.detect_image(network, ['Car'], images[first][0], thresh=.15)
+        detections2 = wrapper.detect_image(network, ['Car'], images[second][0], thresh=.15)   
+
+        if (not detections) or (not detections2):
+            print("nope: " + images[first][1] + " " + images[second][1])
+            continue
+        
+
+        # Get bbox best coordinates of the detections
+        bbox, center = retrieve_best_coordinates(detections, images[first][0])
+        bbox2, center2 = retrieve_best_coordinates(detections2, images[second][0])
+
+
+        # Load the images as Numpy narrays
+        img = cv.imread(images[first][1], cv.IMREAD_GRAYSCALE)
+        img2 = cv.imread(images[second][1], cv.IMREAD_GRAYSCALE)
+
+        # Instantiate the KeyPoint class from the centers bboxes coordinates
+        kp_center = cv.KeyPoint(center[0], center[1], 0)
+        kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
+        
+        
+
+        matches_kp1 = kp_filtersort_L2([i[0] for i in alls[j]], img, bbox, kp_center)
+        matches_kp2 = kp_filtersort_L2([i[1] for i in alls[j]], img2, bbox2, kp_center2)
+        matches_kp1 = [ (i.pt[0], i.pt[1]) for i in matches_kp1]
+        matches_kp2 = [ (i.pt[0], i.pt[1]) for i in matches_kp2]
+
+        matches.append((matches_kp1, matches_kp2))
+
+        print("\n++++ Matches for " + images[first][1] + " --> " + images[second][1] + " ++++")
+        for i,kpp in enumerate(matches_kp1):
+            print("[" + str(kpp[0]) + " , " + str(kpp[1]) + "] --> [" + str(matches_kp2[i][0]) + " , " + str(matches_kp2[i][1]) +  "]") 
+
+    return matches
+
 
 def load_images(file):
 
@@ -353,31 +491,3 @@ def download_model_if_doesnt_exist(model_name):
 
         print("   Model unzipped to {}".format(model_path))
 
-# SuperGlue
-
-def retrieve_kps_superglue(pairs_folder):
-    """
-    Retrieve the keypoints from the output files of the SuperGlue network stored in @pairs_folder
-    """
-    alls = []
-    for k,file in enumerate(sorted(glob.glob(pairs_folder + "*.npz"))):
-        dict_matches = np.load(file)
-        kps = []
-        for i, kp in enumerate(list(dict_matches['keypoints0'])):
-            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .8):
-                temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
-                #if temp[0] != temp[1]:
-                kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
-        alls.append(kps)
-    h = []
-    for i in alls[0]:
-        h.append(i[0])
-
-    l = []
-    for i in alls[2]:
-        l.append(i[1])
-
-    return h
-    #img = cv.imread("images/1.jpg", cv.IMREAD_GRAYSCALE)
-    #last = cv.drawKeypoints(img, h,None)
-    #plt.imshow(last),plt.show()
