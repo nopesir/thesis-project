@@ -4,7 +4,7 @@
 # Get the YOLOv4 trained weights on the Car class from 254300's Google Drive |
 # ----------------------------------------------------------------------
 
-gURL="https://drive.google.com/file/d/1Yz0KmzwIt_UnhIeoFHnd7qBQWhLQLlwo/view?usp=sharing"
+gURL="https://drive.google.com/file/d/1jAftMXsojFB4-ekygkIJvljpE0rJbUQv/view?usp=sharing"
 
 # match more than 26 word characters  
 ggID=$(echo "$gURL" | egrep -o '(\w|-){26,}')

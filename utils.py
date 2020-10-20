@@ -96,6 +96,7 @@ def retrieve_best_coordinates(detections, image_yolo):
     Get the coordinates of the best detection as (xmin, ymin, xmax, ymax, center)
     """
     xmin, ymin, xmax, ymax = wrapper.bbox2points(detections[len(detections)-1][2])
+    xmin2, ymin2, xmax2, ymax2 = wrapper.bbox2points(detections[len(detections)-2][2])
     
     if xmin < 0:
         xmin = 0
@@ -109,11 +110,24 @@ def retrieve_best_coordinates(detections, image_yolo):
     if ymax > image_yolo.h:
         ymax = image_yolo.h
 
-    center = (int((xmax+xmin)/2), int((ymax+ymin)/2))
+    if xmin2 < 0:
+        xmin2 = 0
 
-    return (xmin, ymin, xmax, ymax), center
+    if xmax2 > image_yolo.w:
+        xmax2 = image_yolo.w
 
-def kp_filtersort_L2(kp, img, bbox, kp_center, n=40):
+    if ymin2 < 0:
+        ymin2 = 0
+
+    if ymax2 > image_yolo.h:
+        ymax2 = image_yolo.h
+
+    center1 = (int((xmax+xmin)/2), int((ymax+ymin)/2))
+    center2 = (int((xmax2+xmin2)/2), int((ymax2+ymin2)/2))
+
+    return ((xmin, ymin, xmax, ymax), (xmin2, ymin2, xmax2, ymax2)), (center1, center2)
+
+def kp_filtersort_L2(kp, img, bbox, kp_center, n=50):
     """
     Filter out the keypoints not in the bbox and discards the ALL n-ones that are far from the bbox center
     """
@@ -121,14 +135,16 @@ def kp_filtersort_L2(kp, img, bbox, kp_center, n=40):
     #kp_test = ssc(kp, img.shape[1], img.shape[0], num_ret_points=500)
     kp_yolo = []
     for keypoint in kp:
-        if (keypoint.pt[0] >= bbox[0]) and (keypoint.pt[0] <= bbox[2]) and (keypoint.pt[1] >= bbox[1])  and (keypoint.pt[1] <= bbox[3]):
+        if (keypoint.pt[0] >= bbox[0][0]) and (keypoint.pt[0] <= bbox[0][2]) and (keypoint.pt[1] >= bbox[0][1])  and (keypoint.pt[1] <= bbox[0][3]):
+            kp_yolo.append(keypoint)
+        elif (keypoint.pt[0] >= bbox[1][0]) and (keypoint.pt[0] <= bbox[1][2]) and (keypoint.pt[1] >= bbox[1][1])  and (keypoint.pt[1] <= bbox[1][3]):
             kp_yolo.append(keypoint)
     
     
-    kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
+    #kp_yolo.sort(key = lambda p: (p.pt[0] - kp_center.pt[0])**2 + (p.pt[1] - kp_center.pt[1])**2)
 
 
-    return kp_yolo[0:n]
+    return kp_yolo
 
 def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     """
@@ -214,8 +230,8 @@ def run_surf(images, network):
         else:
             second = i+1
 
-        detections = wrapper.detect_image(network, ['Car'], images[first][0], thresh=.15)
-        detections2 = wrapper.detect_image(network, ['Car'], images[second][0], thresh=.15)   
+        detections = wrapper.detect_image(network, ['Tire'], images[first][0], thresh=.8)
+        detections2 = wrapper.detect_image(network, ['Tire'], images[second][0], thresh=.8)   
 
         if (not detections) or (not detections2):
             print("nope: " + images[first][1] + " " + images[second][1])
@@ -223,20 +239,25 @@ def run_surf(images, network):
         
 
         # Get bbox best coordinates of the detections
-        bbox, center = retrieve_best_coordinates(detections, images[first][0])
-        bbox2, center2 = retrieve_best_coordinates(detections2, images[second][0])
+        bboxes, centers = retrieve_best_coordinates(detections, images[first][0])
+        bboxes2, centers2 = retrieve_best_coordinates(detections2, images[second][0])
 
 
         # Load the images as Numpy narrays
         img = cv.imread(images[first][1], cv.IMREAD_GRAYSCALE)
         img2 = cv.imread(images[second][1], cv.IMREAD_GRAYSCALE)
 
+        kp_center = []
+        kp_center2 = []
         # Instantiate the KeyPoint class from the centers bboxes coordinates
-        kp_center = cv.KeyPoint(center[0], center[1], 0)
-        kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
+        kp_center.append(cv.KeyPoint(centers[0][0], centers[0][1], 0))
+        kp_center.append(cv.KeyPoint(centers[1][0], centers[1][1], 0))
+        
+        kp_center2.append(cv.KeyPoint(centers2[0][0], centers2[0][1], 0))
+        kp_center2.append(cv.KeyPoint(centers2[1][0], centers2[1][1], 0))
         
         # Apply SURF with L2 filter from the YOLO bbox centers
-        (kp, des), (kp2, des2), good = apply(img, img2, bbox, bbox2, kp_center, kp_center2)
+        (kp, des), (kp2, des2), good = apply(img, img2, bboxes, bboxes2, kp_center, kp_center2)
 
         matches_kp1 = []
         matches_kp2 = []
@@ -281,7 +302,7 @@ def run_superglue(pairs_folder, network, images):
         kps = []
         coords = []
         for i, kp in enumerate(list(dict_matches['keypoints0'])):
-            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .8):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .2):
                 temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
                 if temp[0] != temp[1]:
                     kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
@@ -297,8 +318,8 @@ def run_superglue(pairs_folder, network, images):
         else:
             second = j+1
 
-        detections = wrapper.detect_image(network, ['Car'], images[first][0], thresh=.15)
-        detections2 = wrapper.detect_image(network, ['Car'], images[second][0], thresh=.15)   
+        detections = wrapper.detect_image(network, ['Tire'], images[first][0], thresh=.15)
+        detections2 = wrapper.detect_image(network, ['Tire'], images[second][0], thresh=.15)   
 
         if (not detections) or (not detections2):
             print("nope: " + images[first][1] + " " + images[second][1])
@@ -306,8 +327,8 @@ def run_superglue(pairs_folder, network, images):
         
 
         # Get bbox best coordinates of the detections
-        bbox, center = retrieve_best_coordinates(detections, images[first][0])
-        bbox2, center2 = retrieve_best_coordinates(detections2, images[second][0])
+        bboxes, centers = retrieve_best_coordinates(detections, images[first][0])
+        bboxes2, centers2 = retrieve_best_coordinates(detections2, images[second][0])
 
 
         # Load the images as Numpy narrays
@@ -315,13 +336,15 @@ def run_superglue(pairs_folder, network, images):
         img2 = cv.imread(images[second][1], cv.IMREAD_GRAYSCALE)
 
         # Instantiate the KeyPoint class from the centers bboxes coordinates
-        kp_center = cv.KeyPoint(center[0], center[1], 0)
-        kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
+        #kp_center = cv.KeyPoint(center[0], center[1], 0)
+        #kp_center2 = cv.KeyPoint(center2[0], center2[1], 0)
         
+        kp_center = None
+        kp_center2 =  None
         
 
-        matches_kp1 = kp_filtersort_L2([i[0] for i in alls[j]], img, bbox, kp_center)
-        matches_kp2 = kp_filtersort_L2([i[1] for i in alls[j]], img2, bbox2, kp_center2)
+        matches_kp1 = kp_filtersort_L2([i[0] for i in alls[j]], img, bboxes, kp_center)
+        matches_kp2 = kp_filtersort_L2([i[1] for i in alls[j]], img2, bboxes2, kp_center2)
         matches_kp1 = [ (i.pt[0], i.pt[1]) for i in matches_kp1]
         matches_kp2 = [ (i.pt[0], i.pt[1]) for i in matches_kp2]
 
@@ -332,7 +355,6 @@ def run_superglue(pairs_folder, network, images):
             print("[" + str(kpp[0]) + " , " + str(kpp[1]) + "] --> [" + str(matches_kp2[i][0]) + " , " + str(matches_kp2[i][1]) +  "]") 
 
     return matches
-
 
 def load_images(file):
 

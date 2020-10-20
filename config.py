@@ -3,7 +3,7 @@ import numpy as np
 # Darknet configuration files
 config_file = "./darknet/cfg/yolov4-thesis.cfg"
 data_file = "./darknet/thesis.so.data"
-weights_file = "./darknet/yolov4-thesis_last.weights"
+weights_file = "./darknet/yolov4-thesis_best.weights"
 
 # Camera parameters
 d = np.array([-0.03432, 0.05332, -0.00347, 0.00106, 0.00000, 0.0, 0.0, 0.0]).reshape(1, 8) # distortion coefficients
@@ -18,5 +18,5 @@ pairs_folder = "./pairs/"
 
 # CMDs
 cmd_superglue = "./superglue/match_pairs.py --input_pairs " + images_file_sg + " --input_dir " + images_folder + \
-    " --output_dir " + pairs_folder + " --match_threshold .8 --resize -1"
+    " --output_dir " + pairs_folder + " --match_threshold .2 --resize -1 --force_cpu"
 cmd_remove =  "rm " + pairs_folder + "*.npz"

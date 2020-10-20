@@ -18,6 +18,9 @@ images = utils.load_images(images_file)
 
 matches = utils.run_superglue(pairs_folder, network, images)
 
+if not matches:
+    print("No common matches found, decrease the number of photos")
+    sys.exit(0)
 
 common_kps = utils.retrieve_common_kps(matches)
 #common_kps.pop()
