@@ -17,8 +17,8 @@ images = utils.load_images(images_file)
 
 
 
-#matches = utils.run_superglue(pairs_folder, network, images)
-matches = utils.run_surf(images, network)
+matches = utils.run_superglue(pairs_folder, network, images)
+#matches = utils.run_surf(images, network)
 
 
 if not matches:
@@ -26,6 +26,7 @@ if not matches:
     sys.exit(0)
 
 common_kps = utils.retrieve_common_kps(matches)
+print(common_kps[1])
 #common_kps.pop()
 axis = np.float32([[300000,0,0], [0,300000,0], [0,0,-300000]]).reshape(-1,3)
 

@@ -137,7 +137,7 @@ def kp_filtersort_L2(kp, img, bbox, kp_center, n=50):
     for keypoint in kp:
         if (keypoint.pt[0] >= bbox[0][0]) and (keypoint.pt[0] <= bbox[0][2]) and (keypoint.pt[1] >= bbox[0][1])  and (keypoint.pt[1] <= bbox[0][3]):
             kp_yolo.append(keypoint)
-        elif (keypoint.pt[0] >= bbox[1][0]) and (keypoint.pt[0] <= bbox[1][2]) and (keypoint.pt[1] >= bbox[1][1])  and (keypoint.pt[1] <= bbox[1][3]):
+        if (keypoint.pt[0] >= bbox[1][0]) and (keypoint.pt[0] <= bbox[1][2]) and (keypoint.pt[1] >= bbox[1][1])  and (keypoint.pt[1] <= bbox[1][3]):
             kp_yolo.append(keypoint)
     
     
@@ -307,7 +307,7 @@ def run_superglue(pairs_folder, network, images):
         kps = []
         coords = []
         for i, kp in enumerate(list(dict_matches['keypoints0'])):
-            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .2):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .5):
                 temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
                 if temp[0] != temp[1]:
                     kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
@@ -347,12 +347,18 @@ def run_superglue(pairs_folder, network, images):
         kp_center = None
         kp_center2 =  None
         
-
         matches_kp1 = kp_filtersort_L2([i[0] for i in alls[j]], img, bboxes, kp_center)
         matches_kp2 = kp_filtersort_L2([i[1] for i in alls[j]], img2, bboxes2, kp_center2)
-        matches_kp1 = [ (i.pt[0], i.pt[1]) for i in matches_kp1]
-        matches_kp2 = [ (i.pt[0], i.pt[1]) for i in matches_kp2]
+        matches_kp1 = [i.pt for i in matches_kp1]
+        matches_kp2 = [i.pt for i in matches_kp2]
 
+        if len(matches_kp1) > len(matches_kp2):
+            for i in range(0, len(matches_kp1) - len(matches_kp2)):
+                matches_kp1.pop()
+        if len(matches_kp1) < len(matches_kp2):
+            for i in range(0, len(matches_kp2) - len(matches_kp1)):
+                matches_kp2.pop()
+        
         matches.append((matches_kp1, matches_kp2))
 
         print("\n++++ Matches for " + images[first][1] + " --> " + images[second][1] + " ++++")
