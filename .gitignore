@@ -9,7 +9,9 @@ __pycache__
 # Image files
 *.jpg
 *.jpeg
-images/*
+images/*.jpg
+images/*.jpeg
+images/*.png
 *.png
 *.list
 *.json

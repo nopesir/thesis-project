@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ---------------------------------------------------------------------- 
-# Get the YOLOv4 trained weights on the Car class from 254300's Google Drive |
+# Get the YOLOv4 trained weights on the Tire class from 254300's Google Drive |
 # ----------------------------------------------------------------------
 
 gURL="https://drive.google.com/file/d/1jAftMXsojFB4-ekygkIJvljpE0rJbUQv/view?usp=sharing"
