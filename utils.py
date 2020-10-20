@@ -181,8 +181,8 @@ def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     return (kp, des), (kp2, des2), cmatches
 
 def draw(img, corners, imgpts):
-    corner = tuple(corners[0].ravel())
-    corner = tuple([int(x) for x in corner])
+    corner = tuple(corners[1].ravel())
+    #corner = tuple([int(x) for x in corner])
     img = cv.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
     img = cv.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
     img = cv.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
@@ -193,15 +193,19 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    surf = cv.xfeatures2d.SURF_create(300)
+    surf = cv.xfeatures2d.SURF_create(400)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
     kp, des = surf.compute(img1, kp)
+    #kp.append(kp_center1[0])
+    #kp.append(kp_center1[1])
 
     kp2 = surf.detect(img2, None)
     kp2 = kp_filtersort_L2(kp2, img2, bbox2, kp_center2)
     kp2, des2 = surf.compute(img2, kp2)
+    #kp2.append(kp_center2[0])
+    #kp2.append(kp_center2[1])
 
     bf = cv.BFMatcher(normType=cv.NORM_L1)
     matches = bf.knnMatch(des, des2, k=2)
@@ -268,12 +272,13 @@ def run_surf(images, network):
             plt.imshow(last),plt.show()
 
         for match in good:
-            matches_kp1.append(kp[match[0].trainIdx].pt) 
-            matches_kp2.append(kp[match[0].queryIdx].pt) 
+            if ((int(kp[match[0].trainIdx].pt[0]), int(kp[match[0].trainIdx].pt[1])) not in matches_kp1) and \
+                ((int(kp[match[0].queryIdx].pt[0]), int(kp[match[0].queryIdx].pt[1])) not in matches_kp2):
+                matches_kp1.append((int(kp[match[0].trainIdx].pt[0]), int(kp[match[0].trainIdx].pt[1]))) 
+                matches_kp2.append((int(kp[match[0].queryIdx].pt[0]), int(kp[match[0].queryIdx].pt[1]))) 
 
-        if k==0:
-            matches.append((matches_kp1, matches_kp2))
-
+        matches.append((matches_kp1, matches_kp2))
+        
         print("\n++++ Matches for " + images[first][1] + " --> " + images[second][1] + " ++++")
         for i,kpp in enumerate(matches_kp1):
             print("[" + str(kpp[0]) + " , " + str(kpp[1]) + "] --> [" + str(matches_kp2[i][0]) + " , " + str(matches_kp2[i][1]) +  "]") 
@@ -404,14 +409,32 @@ def retrieve_common_kps(matches):
     """
     if len(matches) == 1:
         return matches
-    for i, _ in enumerate(matches):
-        if i==0:
-            temp = list(set(matches[i][0]).intersection(matches[i+1][0]))
-        elif i < (len(matches)-1):
-            temp = list(set(temp).intersection(matches[i+1][0]))
-    
-    return temp
+
+    temp1 = list(set(matches[0][0]).intersection(set(matches[1][0]), set(matches[2][0])))
+
+    temp2 = []
+    temp3 = []
+    temp4 = []
+
+    for i, _ in enumerate(matches[0][1]):
+        if matches[0][0][i] in temp1:
+            temp2.append(matches[0][1][i])
+
+    for i, _ in enumerate(matches[1][1]):
+        if matches[1][0][i] in temp1:
+            temp3.append(matches[1][1][i])
+
+    for i, _ in enumerate(matches[2][1]):
+        if matches[2][0][i] in temp1:
+            temp4.append(matches[2][1][i])
+
+    return (temp1, temp2, temp3, temp4)
         
+def get_keypoints(bboxes, bboxes2):
+    """
+    docstring
+    """
+    pass
 
 # Monodepth2
 

@@ -18,5 +18,5 @@ pairs_folder = "./pairs/"
 
 # CMDs
 cmd_superglue = "./superglue/match_pairs.py --input_pairs " + images_file_sg + " --input_dir " + images_folder + \
-    " --output_dir " + pairs_folder + " --match_threshold .2 --resize -1 --force_cpu"
+    " --output_dir " + pairs_folder + " --match_threshold .2 --resize -1"
 cmd_remove =  "rm " + pairs_folder + "*.npz"

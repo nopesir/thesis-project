@@ -16,8 +16,8 @@ def in_front_of_both_cameras(first_points, second_points, rot, trans):
     return True
 
 # load the corresponding images
-first_img = cv2.imread("images/tripod_seq_01_003.jpg")
-second_img = cv2.imread("images/tripod_seq_01_015.jpg")
+first_img = cv2.imread("images/6.jpg")
+second_img = cv2.imread("images/7.jpg")
 
 # camera parameters
 d = np.array([-0.03432, 0.05332, -0.00347, 0.00106, 0.00000, 0.0, 0.0, 0.0]).reshape(1, 8) # distortion coefficients
