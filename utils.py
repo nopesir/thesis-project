@@ -193,7 +193,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    surf = cv.xfeatures2d.SURF_create(400)
+    surf = cv.xfeatures2d.SURF_create(250)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -236,6 +236,7 @@ def run_surf(images, network):
 
         detections = wrapper.detect_image(network, ['Tire'], images[first][0], thresh=.8)
         detections2 = wrapper.detect_image(network, ['Tire'], images[second][0], thresh=.8)   
+
 
         if (not detections) or (not detections2):
             print("nope: " + images[first][1] + " " + images[second][1])

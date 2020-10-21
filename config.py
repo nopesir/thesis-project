@@ -6,8 +6,9 @@ data_file = "./darknet/thesis.so.data"
 weights_file = "./darknet/yolov4-thesis_best.weights"
 
 # Camera parameters
-d = np.array([-0.03432, 0.05332, -0.00347, 0.00106, 0.00000, 0.0, 0.0, 0.0]).reshape(1, 8) # distortion coefficients
-K = np.array([1189.46, 0.0, 805.49, 0.0, 1191.78, 597.44, 0.0, 0.0, 1.0]).reshape(3, 3) # Camera matrix
+with np.load('camera.npz') as X:
+    K, d, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
+
 K_inv = np.linalg.inv(K)
 
 # Othes
@@ -18,5 +19,5 @@ pairs_folder = "./pairs/"
 
 # CMDs
 cmd_superglue = "./superglue/match_pairs.py --input_pairs " + images_file_sg + " --input_dir " + images_folder + \
-    " --output_dir " + pairs_folder + " --match_threshold .2 --resize -1"
+    " --output_dir " + pairs_folder + " --match_threshold .2 --resize -1 --force_cpu"
 cmd_remove =  "rm " + pairs_folder + "*.npz"

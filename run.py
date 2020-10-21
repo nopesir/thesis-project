@@ -17,8 +17,8 @@ images = utils.load_images(images_file)
 
 
 
-matches = utils.run_superglue(pairs_folder, network, images)
-#matches = utils.run_surf(images, network)
+#matches = utils.run_superglue(pairs_folder, network, images)
+matches = utils.run_surf(images, network)
 
 
 if not matches:
@@ -26,14 +26,14 @@ if not matches:
     sys.exit(0)
 
 common_kps = utils.retrieve_common_kps(matches)
-print(common_kps[1])
+print(common_kps[0])
 #common_kps.pop()
-axis = np.float32([[300000,0,0], [0,300000,0], [0,0,-300000]]).reshape(-1,3)
+axis = np.float32([[3000,0,0], [0,3000,0], [0,0,-3000]]).reshape(-1,3)
 
 kps = []
-for i, kp in enumerate(common_kps[1]):
+for i, kp in enumerate(common_kps[0]):
     kps.append(cv.KeyPoint(kp[0], kp[1], 0))
-    common_kps[1][i] = list(kp)
+    common_kps[0][i] = list(kp)
 
 img = cv.imread(images[1][1], cv.IMREAD_GRAYSCALE)
 last = cv.drawKeypoints(img, kps,None)
@@ -42,15 +42,16 @@ plt.imshow(last),plt.show()
 
 # Create the 3D points from the common keypoints (Z=0 for planar objects)
 imgp = np.array(common_kps[0], np.float32)
-objp = np.zeros((len(imgp), 3), np.float32)
+objp = np.ones((len(imgp), 3), np.float32)
 
 for i,elem in enumerate(objp):
     for k in range(0, 2):
         if k!=2:
             objp[i][k] = imgp[i][k] 
 
-imgp = np.array(common_kps[1], np.float32)
-img = cv.imread(images[1][1])
+
+#imgp = np.array(common_kps[1], np.float32)
+img = cv.imread(images[0][1])
 gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)

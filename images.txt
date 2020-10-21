@@ -1,4 +1,4 @@
-images/6.jpg
-images/7.jpg
-images/8.jpg
-images/9.jpg
+images/car_2_4.jpg
+images/car_2_3.jpg
+images/car_2_2.jpg
+images/car_2_1.jpg
