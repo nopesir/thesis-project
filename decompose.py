@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from config import *
 
 
 def in_front_of_both_cameras(first_points, second_points, rot, trans):
@@ -16,12 +17,12 @@ def in_front_of_both_cameras(first_points, second_points, rot, trans):
     return True
 
 # load the corresponding images
-first_img = cv2.imread("images/6.jpg")
-second_img = cv2.imread("images/7.jpg")
+first_img = cv2.imread("images/a.jpg")
+first_img = cv2.resize(first_img,None,fx=0.4,fy=0.4)
+second_img = cv2.imread("images/b.jpg")
+second_img = cv2.resize(second_img,None,fx=0.4,fy=0.4)
 
 # camera parameters
-d = np.array([-0.03432, 0.05332, -0.00347, 0.00106, 0.00000, 0.0, 0.0, 0.0]).reshape(1, 8) # distortion coefficients
-K = np.array([1189.46, 0.0, 805.49, 0.0, 1191.78, 597.44, 0.0, 0.0, 1.0]).reshape(3, 3) # Camera matrix
 K_inv = np.linalg.inv(K)
 
 # undistort the images first
@@ -83,6 +84,10 @@ if not in_front_of_both_cameras(first_inliers, second_inliers, R, T):
             # Fourth choice: R = U * Wt * Vt, T = -u_3
             T = - U[:, 2]
 
+
+
+C = -R.T.dot(T)
+print("camera position: " + str(C))
 #perform the rectification
 R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify(K, d, K, d, first_img.shape[:2], R, T, alpha=1.0)
 mapx1, mapy1 = cv2.initUndistortRectifyMap(K, d, R1, K, first_img.shape[:2], cv2.CV_32F)
@@ -96,9 +101,6 @@ img = np.zeros(total_size, dtype=np.uint8)
 img[:img_rect1.shape[0], :img_rect1.shape[1]] = img_rect1
 img[:img_rect2.shape[0], img_rect1.shape[1]:] = img_rect2
 
-# draw horizontal lines every 25 px accross the side by side image
-for i in range(20, img.shape[0], 25):
-    cv2.line(img, (0, i), (img.shape[1], i), (255, 0, 0))
 
 cv2.imshow('rectified', img)
 cv2.waitKey(0)

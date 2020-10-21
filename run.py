@@ -17,8 +17,8 @@ images = utils.load_images(images_file)
 
 
 
-#matches = utils.run_superglue(pairs_folder, network, images)
-matches = utils.run_surf(images, network)
+matches = utils.run_superglue(pairs_folder, network, images)
+#matches = utils.run_surf(images, network)
 
 
 if not matches:
@@ -27,15 +27,18 @@ if not matches:
 
 common_kps = utils.retrieve_common_kps(matches)
 print(common_kps[0])
+print(common_kps[1])
+print(common_kps[2])
 #common_kps.pop()
-axis = np.float32([[3000,0,0], [0,3000,0], [0,0,-3000]]).reshape(-1,3)
+axis = np.float32([[100,100,0], [100,200,0], [200,200,100], [200,100,0],
+                   [100,100,-50], [100,200,-50], [200,200,-50], [200,100,-50]])
 
 kps = []
 for i, kp in enumerate(common_kps[0]):
     kps.append(cv.KeyPoint(kp[0], kp[1], 0))
     common_kps[0][i] = list(kp)
 
-img = cv.imread(images[1][1], cv.IMREAD_GRAYSCALE)
+img = cv.imread(images[0][1], cv.IMREAD_GRAYSCALE)
 last = cv.drawKeypoints(img, kps,None)
 plt.imshow(last),plt.show()
 
@@ -49,21 +52,23 @@ for i,elem in enumerate(objp):
         if k!=2:
             objp[i][k] = imgp[i][k] 
 
+for i, elem in enumerate(common_kps):
+    imgp = np.array(elem, np.float32)
+    img = cv.imread(images[i][1])
+    gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
-#imgp = np.array(common_kps[1], np.float32)
-img = cv.imread(images[0][1])
-gray = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    imgp = np.reshape(imgp, (len(imgp), 1, 2))
+    ret, rvecs, tvecs, _ = cv.solvePnPRansac(objp, imgp, K, d)
+    print(ret)
+    R = cv.Rodrigues(rvecs)[0]
+    print(tvecs)
+    C = -R.T.dot(tvecs)
+    print("Camera #" + str(i+1) + " position: " + str(C.ravel()))
+    # project 3D points to image plane
+    imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, K, d)
 
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-imgp = np.reshape(imgp, (len(imgp), 1, 2))
-ret, rvecs, tvecs, inliers = cv.solvePnPRansac(objp, imgp, K, d)
-
-# project 3D points to image plane
-imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, K, d)
-
-#ttt = cv.drawChessboardCorners(img, (3,6), imgp, ret)
-
-img = utils.draw(img,imgp,imgpts)
-plt.imshow(img), plt.show()
+    img = utils.draw(gray,imgp,imgpts)
+    plt.imshow(img), plt.show()
 
 sys.exit(0)

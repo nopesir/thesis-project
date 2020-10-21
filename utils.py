@@ -181,11 +181,14 @@ def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     return (kp, des), (kp2, des2), cmatches
 
 def draw(img, corners, imgpts):
-    corner = tuple(corners[1].ravel())
-    #corner = tuple([int(x) for x in corner])
-    img = cv.line(img, corner, tuple(imgpts[0].ravel()), (255,0,0), 5)
-    img = cv.line(img, corner, tuple(imgpts[1].ravel()), (0,255,0), 5)
-    img = cv.line(img, corner, tuple(imgpts[2].ravel()), (0,0,255), 5)
+    imgpts = np.int32(imgpts).reshape(-1,2)
+    # draw ground floor in green
+    img = cv.drawContours(img, [imgpts[:4]],-1,(0,255,0),-3)
+    # draw pillars in blue color
+    for i,j in zip(range(4),range(4,8)):
+        img = cv.line(img, tuple(imgpts[i]), tuple(imgpts[j]),(255),3)
+    # draw top layer in red color
+    img = cv.drawContours(img, [imgpts[4:]],-1,(0,0,255),3)
     return img
 
 def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
@@ -193,7 +196,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    surf = cv.xfeatures2d.SURF_create(250)
+    surf = cv.xfeatures2d.SURF_create(300)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -308,7 +311,7 @@ def run_superglue(pairs_folder, network, images):
         kps = []
         coords = []
         for i, kp in enumerate(list(dict_matches['keypoints0'])):
-            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .5):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .4):
                 temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
                 if temp[0] != temp[1]:
                     kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
@@ -324,8 +327,8 @@ def run_superglue(pairs_folder, network, images):
         else:
             second = j+1
 
-        detections = wrapper.detect_image(network, ['Tire'], images[first][0], thresh=.15)
-        detections2 = wrapper.detect_image(network, ['Tire'], images[second][0], thresh=.15)   
+        detections = wrapper.detect_image(network, ['Tire'], images[first][0], thresh=.8)
+        detections2 = wrapper.detect_image(network, ['Tire'], images[second][0], thresh=.8)   
 
         if (not detections) or (not detections2):
             print("nope: " + images[first][1] + " " + images[second][1])
@@ -414,28 +417,58 @@ def retrieve_common_kps(matches):
     """
     Takes the DMatch-es of the fisrt photo with each one of the other and returns the coordinates of the first photo that are matched in each one of the other photos
     """
-    if len(matches) == 1:
-        return matches
+    
+    if len(matches) == 3:
+        temp = list(set(matches[0][0]).intersection(set(matches[1][0]), set(matches[2][0])))
+        temp1 = []
+        temp2 = []
+        for i, _ in enumerate(matches[0][0]):
+            if matches[0][0][i] in temp:
+                temp1.insert(i, matches[0][0][i])
+        for i, _ in enumerate(matches[0][1]):
+            if matches[0][0][i] in temp1:
+                temp2.insert(i,matches[0][1][i])
+        temp3 = []
+        for i, _ in enumerate(matches[1][1]):
+            if matches[1][0][i] in temp1:
+                temp3.insert(i, matches[1][1][i])  
+        temp4 = []
+        for i, _ in enumerate(matches[2][1]):
+            if matches[2][0][i] in temp1:
+                temp4.insert(i, matches[2][1][i])
 
-    temp1 = list(set(matches[0][0]).intersection(set(matches[1][0]), set(matches[2][0])))
+        return (temp1, temp2, temp3, temp4)
+    
+    elif len(matches) == 2:
+        temp = list(set(matches[0][0]).intersection(set(matches[1][0])))
+        temp1 = []
+        temp2 = []
+        for i, _ in enumerate(matches[0][0]):
+            if matches[0][0][i] in temp:
+                temp1.insert(i, matches[0][0][i])
+        for i, _ in enumerate(matches[0][1]):
+            if matches[0][0][i] in temp1:
+                temp2.insert(i, matches[0][1][i])
+        temp3 = []
+        for i, _ in enumerate(matches[1][1]):
+            if matches[1][0][i] in temp1:
+                temp3.insert(i, matches[1][1][i])
 
-    temp2 = []
-    temp3 = []
-    temp4 = []
+        return (temp1, temp2, temp3)
+    
+    elif len(matches) == 1:
+        temp1 = list(matches[0][0])
+        temp2 = []
+        for i, _ in enumerate(matches[0][1]):
+            if matches[0][0][i] in temp1:
+                temp2.insert(i, matches[0][1][i])
 
-    for i, _ in enumerate(matches[0][1]):
-        if matches[0][0][i] in temp1:
-            temp2.append(matches[0][1][i])
+        return (temp1, temp2)
+    
+    else:
+        return []
 
-    for i, _ in enumerate(matches[1][1]):
-        if matches[1][0][i] in temp1:
-            temp3.append(matches[1][1][i])
-
-    for i, _ in enumerate(matches[2][1]):
-        if matches[2][0][i] in temp1:
-            temp4.append(matches[2][1][i])
-
-    return (temp1, temp2, temp3, temp4)
+    
         
 def get_keypoints(bboxes, bboxes2):
     """

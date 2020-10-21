@@ -37,9 +37,9 @@ for fname in glob.glob('images/*.jpg'):
     if ret == True:
         corners2 = cv.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
         # Find the rotation and translation vectors.
-        ret,rvecs, tvecs = cv.solvePnP(objp, corners2, mtx, dist)
+        ret,rvecs, tvecs, _ = cv.solvePnPRansac(objp, corners2, K, d)
         # project 3D points to image plane
-        imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, mtx, dist)
+        imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, K, d)
         img = draw(img,corners2,imgpts)
         cv.imshow('img',img)
         k = cv.waitKey(1000)

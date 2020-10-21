@@ -1,3 +1,2 @@
-car_2_1.jpg car_2_2.jpg 0
-car_2_1.jpg car_2_3.jpg 0
-car_2_1.jpg car_2_4.jpg 0
+2.jpg 3.jpg 0
+2.jpg 4.jpg 0
