@@ -183,12 +183,12 @@ def apply_gpu(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
 def draw(img, corners, imgpts):
     imgpts = np.int32(imgpts).reshape(-1,2)
     # draw ground floor in green
-    img = cv.drawContours(img, [imgpts[:4]],-1,(0,255,0),-3)
+    img = cv.drawContours(img, [imgpts[:4]],-1,(0,215,0),-3)
     # draw pillars in blue color
     for i,j in zip(range(4),range(4,8)):
-        img = cv.line(img, tuple(imgpts[i]), tuple(imgpts[j]),(255),3)
+        img = cv.line(img, tuple(imgpts[i]), tuple(imgpts[j]),(215),3)
     # draw top layer in red color
-    img = cv.drawContours(img, [imgpts[4:]],-1,(0,0,255),3)
+    img = cv.drawContours(img, [imgpts[4:]],-1,(0,0,215),3)
     return img
 
 def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
@@ -196,7 +196,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    surf = cv.xfeatures2d.SURF_create(270, nOctaves=32, nOctaveLayers=6, extended=True)
+    surf = cv.xfeatures2d.SURF_create(270, nOctaves=16, nOctaveLayers=6, extended=True)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -313,7 +313,7 @@ def run_superglue(pairs_folder, network, images):
         kps = []
         coords = []
         for i, kp in enumerate(list(dict_matches['keypoints0'])):
-            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .45):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .54):
                 temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
                 if temp[0] != temp[1]:
                     kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))

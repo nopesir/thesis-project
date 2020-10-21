@@ -1,4 +1,3 @@
-images/panda_11.jpg
-images/panda_16.jpg
-images/panda_19.jpg
-images/panda_23.jpg
+images/2.jpg
+images/3.jpg
+images/4.jpg
