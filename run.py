@@ -17,8 +17,8 @@ images = utils.load_images(images_file)
 
 
 
-matches = utils.run_superglue(pairs_folder, network, images)
-#matches = utils.run_surf(images, network)
+#matches = utils.run_superglue(pairs_folder, network, images)
+matches = utils.run_surf(images, network)
 
 
 if not matches:
@@ -30,8 +30,8 @@ print(common_kps[0])
 print(common_kps[1])
 print(common_kps[2])
 #common_kps.pop()
-axis = np.float32([[100,100,0], [100,200,0], [200,200,100], [200,100,0],
-                   [100,100,-50], [100,200,-50], [200,200,-50], [200,100,-50]])
+axis = np.float32([[200,200,0], [300,200,0], [300,300,100], [200,300,0],
+                   [200,200,-50], [300,200,-50], [300,300,-50], [200,300,-50]])
 
 kps = []
 for i, kp in enumerate(common_kps[0]):
@@ -62,13 +62,12 @@ for i, elem in enumerate(common_kps):
     ret, rvecs, tvecs, _ = cv.solvePnPRansac(objp, imgp, K, d)
     print(ret)
     R = cv.Rodrigues(rvecs)[0]
-    print(tvecs)
     C = -R.T.dot(tvecs)
     print("Camera #" + str(i+1) + " position: " + str(C.ravel()))
     # project 3D points to image plane
     imgpts, jac = cv.projectPoints(axis, rvecs, tvecs, K, d)
 
-    img = utils.draw(gray,imgp,imgpts)
+    img = utils.draw(img,imgp,imgpts)
     plt.imshow(img), plt.show()
 
 sys.exit(0)

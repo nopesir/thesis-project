@@ -19,5 +19,5 @@ pairs_folder = "./pairs/"
 
 # CMDs
 cmd_superglue = "./superglue/match_pairs.py --superglue outdoor --max_keypoints 2048 --nms_radius 3 --resize_float --input_pairs " + images_file_sg + " --input_dir " + images_folder + \
-    " --output_dir " + pairs_folder + " --match_threshold .4 --resize -1 --force_cpu --viz --viz_extension pdf"
+    " --output_dir " + pairs_folder + " --match_threshold .3 --resize -1 --force_cpu --viz --viz_extension pdf"
 cmd_remove =  "rm " + pairs_folder + "*"

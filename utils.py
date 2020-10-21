@@ -196,7 +196,7 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
     Apply SURF on the bbox of the two images and filter the keypoints using L2 NORM distance from the YOLO bbox center.
     """
 
-    surf = cv.xfeatures2d.SURF_create(300)
+    surf = cv.xfeatures2d.SURF_create(270, nOctaves=32, nOctaveLayers=6, extended=True)
 
     kp = surf.detect(img1, None)
     kp = kp_filtersort_L2(kp, img1, bbox1, kp_center1)
@@ -215,8 +215,9 @@ def apply(img1, img2, bbox1, bbox2, kp_center1, kp_center2):
 
     good = []
     for m, n in matches:
-        if m.distance < 0.85 * n.distance:
+        if m.distance < 0.87 * n.distance:
             good.append([m])
+    
     
     return (kp, des), (kp2, des2), good
 
@@ -275,11 +276,12 @@ def run_surf(images, network):
             last = cv.drawKeypoints(img, kp,None)
             plt.imshow(last),plt.show()
 
-        for match in good:
-            if ((int(kp[match[0].trainIdx].pt[0]), int(kp[match[0].trainIdx].pt[1])) not in matches_kp1) and \
-                ((int(kp[match[0].queryIdx].pt[0]), int(kp[match[0].queryIdx].pt[1])) not in matches_kp2):
-                matches_kp1.append((int(kp[match[0].trainIdx].pt[0]), int(kp[match[0].trainIdx].pt[1]))) 
-                matches_kp2.append((int(kp[match[0].queryIdx].pt[0]), int(kp[match[0].queryIdx].pt[1]))) 
+        for i,match in enumerate(good):
+            #if ((int(kp[match[0].trainIdx].pt[0]), int(kp[match[0].trainIdx].pt[1])) not in matches_kp1) and \
+             #   ((int(kp[match[0].queryIdx].pt[0]), int(kp[match[0].queryIdx].pt[1])) not in matches_kp2):
+            
+            matches_kp1.append((int(kp[match[0].queryIdx].pt[0]), int(kp[match[0].queryIdx].pt[1]))) 
+            matches_kp2.append((int(kp2[match[0].trainIdx].pt[0]), int(kp2[match[0].trainIdx].pt[1]))) 
 
         matches.append((matches_kp1, matches_kp2))
         
@@ -311,7 +313,7 @@ def run_superglue(pairs_folder, network, images):
         kps = []
         coords = []
         for i, kp in enumerate(list(dict_matches['keypoints0'])):
-            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .4):
+            if (dict_matches['matches'][i] > -1) and (dict_matches['match_confidence'][i] > .45):
                 temp = (tuple(dict_matches['keypoints0'][i]), tuple(dict_matches['keypoints1'][dict_matches['matches'][i]]))
                 if temp[0] != temp[1]:
                     kps.append((cv.KeyPoint(temp[0][0], temp[0][1], 0), cv.KeyPoint(temp[1][0], temp[1][1], 0)))
