@@ -10,6 +10,7 @@ hasGPU = True
 with np.load('camera.npz') as X:
     K, d, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
 
+print(K)
 K_inv = np.linalg.inv(K)
 
 # Othes
