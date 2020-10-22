@@ -13,7 +13,7 @@ static void help()
   cout
       << "\n------------------------------------------------------------------------------------\n"
       << " Usage:\n"
-      << "        test <path_to_file_txt> <f> <cx> <cy>\n"
+      << "        ./sfm <path_to_file_txt> <f> <cx> <cy>\n"
       << " where: path_to_file_txt is the file absolute path into your system which contains\n"
       << "        the list of images to use for reconstruction. \n"
       << "        f  is the focal length in pixels. \n"
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   window.setWindowSize(Size(600, 600));
   window.setWindowPosition(Point(150, 150));
   window.setBackgroundColor(); // black by default
-  
+
   // Create the pointcloud
   cout << "Recovering points  ... ";
   // recover estimated points3d
