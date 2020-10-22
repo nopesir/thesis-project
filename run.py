@@ -42,7 +42,7 @@ last = cv.drawKeypoints(img, kps,None)
 plt.imshow(last),plt.show()
 
 
-# Create the 3D points from the common keypoints (Z=0 for planar objects)
+# Create the 3D points from the common keypoints (Z=1 for planar objects)
 imgp = np.array(common_kps[0], np.float32)
 objp = np.ones((len(imgp), 3), np.float32)
 

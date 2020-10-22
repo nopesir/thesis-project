@@ -6,7 +6,7 @@ data_file = "./darknet/thesis.so.data"
 weights_file = "./darknet/yolov4-thesis_best.weights"
 hasGPU = True
 
-# Camera parameters
+# Camera parameters (Redmi Note 8T)
 with np.load('camera.npz') as X:
     K, d, _, _ = [X[i] for i in ('mtx','dist','rvecs','tvecs')]
 
