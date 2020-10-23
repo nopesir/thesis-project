@@ -8,6 +8,8 @@
 using namespace std;
 using namespace cv;
 using namespace cv::sfm;
+
+
 static void help()
 {
   cout
@@ -22,6 +24,8 @@ static void help()
       << "------------------------------------------------------------------------------------\n\n"
       << endl;
 }
+
+
 static int getdir(const string _filename, vector<String> &files)
 {
   ifstream myfile(_filename.c_str());
@@ -36,10 +40,12 @@ static int getdir(const string _filename, vector<String> &files)
     size_t found = _filename.find_last_of("/\\");
     string line_str, path_to_file = _filename.substr(0, found);
     while (getline(myfile, line_str))
-      files.push_back(path_to_file + string("/") + line_str);
+      files.push_back(line_str);
   }
   return 1;
 }
+
+
 int main(int argc, char *argv[])
 {
   // Read input parameters
@@ -70,11 +76,6 @@ int main(int argc, char *argv[])
   cout << "============================" << endl;
   cout << "Estimated 3D points: " << points3d_estimated.size() << endl;
   cout << "Estimated cameras: " << Rs_est.size() << endl;
-  for (int i = 0; i < Rs_est.size(); i++)
-  {
-    cout << "Camera #" << i+1 << " :" << Rs_est[i] << endl;
-  }
-  
   cout << "Refined intrinsics: " << endl
        << K << endl
        << endl;
@@ -97,6 +98,11 @@ int main(int argc, char *argv[])
   for (size_t i = 0; i < Rs_est.size(); ++i)
     path.push_back(Affine3d(Rs_est[i], ts_est[i]));
   cout << "[DONE]" << endl;
+  for (int i = 0; i < path.size(); i++)
+  {
+    Mat temp = (-Rs_est[i].t()*ts_est[i]) * 0.001f; 
+    cout << "Position of Camera #" << i+1 << " : [" << temp.at<double>(0,0) <<", " << temp.at<double>(0,1)  << ", " << temp.at<double>(0,2)  << "]" << endl;
+  }
   if (point_cloud_est.size() > 0)
   {
     cout << "Rendering points   ... ";
