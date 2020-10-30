@@ -17,8 +17,8 @@ images = utils.load_images(images_file)
 
 
 
-matches = utils.run_superglue(pairs_folder, network, images)
-#matches = utils.run_surf(images, network)
+#matches = utils.run_superglue(pairs_folder, network, images)
+matches = utils.run_surf(images, network)
 
 
 if not matches:
